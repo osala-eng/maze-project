@@ -12,3 +12,13 @@ In 3D raycasting, the player's viewpoint is represented by a position in 3D spac
 When an intersection is detected, the distance from the player's position to the intersected object is calculated, and this distance is used to determine the height of the object on the screen. This allows the renderer to create the illusion of depth and perspective in a 3D environment, even though the screen is 2D.
 
 3D raycasting was first popularized by the game "Wolfenstein 3D" in the early 1990s, and it has since been used in many other games, including "Doom" and "Quake". It is still used today in some games and simulations, although newer techniques such as ray tracing have largely replaced it in high-end applications.
+
+
+### Testing the product
+
+To test the product clone the repository [Maze repo](https://github.com/osala-eng/maze-project)
+then run the command 
+
+```bash
+make all && ./testfile
+```
