@@ -22,7 +22,7 @@ using namespace QuickCG;
 #define mapWidth 24
 #define mapHeight 24
 
-#define GEN_TEXTURES
+// #define GEN_TEXTURES
 
 // World map
 int worldMap[mapWidth][mapHeight] =
@@ -63,31 +63,31 @@ struct Sprite
 Sprite sprite[NUM_SPRITES] =
   {
     /** Section 1*/
-    {12.0, 4.0, 0},
+    {20.5, 11.5, 10},
 
     /** Section 2*/
-    {12.0, 10.0, 1},
-    {12.0, 14.0, 2},
-    {12.0, 18.0, 3},
-    {16.0, 4.0, 4},
-    {16.0, 10.0, 5},
-    {16.0, 14.0, 6},
-    {16.0, 18.0, 7},
+    {18.5,4.5, 10},
+    {10.0,4.5, 10},
+    {10.0,12.5,10},
+    {3.5, 6.5, 10},
+    {3.5, 20.5,10},
+    {3.5, 14.5,10},
+    {14.5,20.5,10},
 
     /** Section 3*/
-    {20.0, 4.0, 8},
-    {20.0, 10.0, 9},
-    {20.0, 14.0, 10},
+    {18.5, 10.5, 9},
+    {18.5, 11.5, 9},
+    {18.5, 12.5, 9},
 
     /** Section 4*/
-    {20.0, 18.0, 11},
-    {24.0, 4.0, 12},
-    {24.0, 10.0, 13},
-    {24.0, 14.0, 14},
-    {24.0, 18.0, 15},
-    {28.0, 4.0, 16},
-    {28.0, 10.0, 17},
-    {28.0, 14.0, 18}
+    {21.5, 1.5, 8},
+    {15.5, 1.5, 8},
+    {16.0, 1.8, 8},
+    {16.2, 1.2, 8},
+    {3.5,  2.5, 8},
+    {9.5, 15.5, 8},
+    {10.0, 15.1,8},
+    {10.5, 15.8,8},
 };
 
 Uint32 buffer[SCREEN_HEIGHT][SCREEN_WIDTH]; /* H ==> W*/
@@ -171,6 +171,59 @@ int main(int ac, char **av, char **env)
   // Main loop
   while (!done())
   {
+
+    /**
+     * Floor Casting
+     */
+    for (int y = SCREEN_HEIGHT / 2 + 1; y < SCREEN_HEIGHT; y++)
+    {
+      // Current y position compared to the center of the screen (the horizon)
+      int p = y - SCREEN_HEIGHT / 2;
+
+      // Vertical position of the camera.
+      double posZ = 0.5 * SCREEN_HEIGHT;
+
+      // Horizontal distance from the camera to the floor for the current row.
+      double rowDistance = posZ / p;
+
+      // calculate the real world step vector we have to add for each x (parallel to camera plane)
+      // adding step by step avoids multiplications with a weight in the inner loop
+      double floorStepX = rowDistance * (dirY) / SCREEN_WIDTH;
+      double floorStepY = rowDistance * (-dirX) / SCREEN_WIDTH;
+
+      // real world coordinates of the leftmost column. This will be updated as we step to the right.
+      double floorX = posX + rowDistance * dirX;
+      double floorY = posY + rowDistance * dirY;
+
+      for (int x = 0; x < SCREEN_WIDTH; x++)
+      {
+        // the cell coord is simply got from the integer parts of floorX and floorY
+        int cellX = int(floorX);
+        int cellY = int(floorY);
+
+        // get the texture coordinate from the fractional part
+        int tx = int(texWidth * (floorX - cellX)) & (texWidth - 1);
+        int ty = int(texHeight * (floorY - cellY)) & (texHeight - 1);
+
+        floorX += floorStepX;
+        floorY += floorStepY;
+
+        // choose texture and draw the pixel
+        int floorTexture = 3;
+        int ceilingTexture = 6;
+        Uint32 floorColor = texture[floorTexture][texWidth * ty + tx];
+        Uint32 ceilingColor = texture[ceilingTexture][texWidth * ty + tx];
+
+        // floor
+        buffer[y][x] = floorColor;
+        //ceiling (symmetrical!)
+        buffer[SCREEN_HEIGHT - y][x] = ceilingColor;
+      }
+    }
+
+    /**
+     * Wall Casting
+    */
     for (int x = 0; x < w; x++)
     {
       // Calculate ray position and direction
@@ -251,13 +304,11 @@ int main(int ac, char **av, char **env)
       // Calculate height of line to draw on screen
       int lineHeight = (int)(h / perpWallDist);
 
-      int pitch = 100;
-
       // Calculate lowest and highest pixel to fill in current stripe
-      int drawStart = -lineHeight / 2 + h / 2 + pitch;
+      int drawStart = -lineHeight / 2 + h / 2;
       if (drawStart < 0)
         drawStart = 0;
-      int drawEnd = lineHeight / 2 + h / 2 + pitch;
+      int drawEnd = lineHeight / 2 + h / 2;
       if (drawEnd >= h)
         drawEnd = h - 1;
 
@@ -282,7 +333,7 @@ int main(int ac, char **av, char **env)
       // How much to increase the texture coordinate per screen pixel
       double step = 1.0 * texHeight / lineHeight;
       // Starting texture coordinate
-      double texPos = (drawStart - pitch - h / 2 + lineHeight / 2) * step;
+      double texPos = (drawStart - h / 2 + lineHeight / 2) * step;
       for (int y = drawStart; y < drawEnd; y++)
       {
         // Cast the texture coordinate to integer, and mask with (texHeight - 1) in case of overflow
@@ -294,18 +345,84 @@ int main(int ac, char **av, char **env)
           color = (color >> 1) & 8355711;
         buffer[y][x] = color;
       }
+
+      /* Set the ZBuffer for casting sprite */
+      ZBuffer[x] = perpWallDist; /* perpendicular distance is used */
     }
 
-    drawBuffer(buffer[0]);
-    for (int y = 0; y < h; ++y)
+    /**
+     * Sprite Casting
+     * Sort sprites from far to close
+    */
+    for (int i = 0; i < NUM_SPRITES; i++)
     {
-      for (int x = 0; x < w; ++x)
+      spriteOrder[i] = i;
+      spriteDistance[i] = ((posX - sprite[i].x) * (posX - sprite[i].x) + (posY - sprite[i].y) * (posY - sprite[i].y)); // sqrt not taken, unneeded
+    }
+    sortSprites(spriteOrder, spriteDistance, NUM_SPRITES);
+
+    /* After sorting the sprites, do the projection and draw them */
+    for (int i = 0; i < NUM_SPRITES; i++)
+    {
+      // translate sprite position to relative to camera
+      double spriteX = sprite[spriteOrder[i]].x - posX;
+      double spriteY = sprite[spriteOrder[i]].y - posY;
+
+      // transform sprite with the inverse camera matrix
+      // [ planeX   dirX ] -1                                       [ dirY      -dirX ]
+      // [               ]       =  1/(planeX*dirY-dirX*planeY) *   [                 ]
+      // [ planeY   dirY ]                                          [ -planeY  planeX ]
+
+      double invDet = 1.0 / (planeX * dirY - dirX * planeY); // required for correct matrix multiplication
+
+      double transformX = invDet * (dirY * spriteX - dirX * spriteY);
+      double transformY = invDet * (-planeY * spriteX + planeX * spriteY); // this is actually the depth inside the screen, that what Z is in 3D
+
+      int spriteScreenX = int((w / 2) * (1 + transformX / transformY));
+
+      // calculate height of the sprite on screen
+      int spriteHeight = abs(int(h / (transformY))); // using "transformY" instead of the real distance prevents fisheye
+      // calculate lowest and highest pixel to fill in current stripe
+      int drawStartY = -spriteHeight / 2 + h / 2;
+      if (drawStartY < 0)
+        drawStartY = 0;
+      int drawEndY = spriteHeight / 2 + h / 2;
+      if (drawEndY >= h)
+        drawEndY = h - 1;
+
+      // calculate width of the sprite
+      int spriteWidth = abs(int(h / (transformY)));
+      int drawStartX = -spriteWidth / 2 + spriteScreenX;
+      if (drawStartX < 0)
+        drawStartX = 0;
+      int drawEndX = spriteWidth / 2 + spriteScreenX;
+      if (drawEndX >= w)
+        drawEndX = w - 1;
+
+      // loop through every vertical stripe of the sprite on screen
+      for (int stripe = drawStartX; stripe < drawEndX; stripe++)
       {
-        buffer[y][x] = 0; // Clear the buffer instead of cls()
+        int texX = int(256 * (stripe - (-spriteWidth / 2 + spriteScreenX)) * texWidth / spriteWidth) / 256;
+        // the conditions in the if are:
+        // 1) it's in front of camera plane so you don't see things behind you
+        // 2) it's on the screen (left)
+        // 3) it's on the screen (right)
+        // 4) ZBuffer, with perpendicular distance
+        if (transformY > 0 && stripe > 0 && stripe < w && transformY < ZBuffer[stripe])
+          for (int y = drawStartY; y < drawEndY; y++) // for every pixel of the current stripe
+          {
+            int d = (y) * 256 - h * 128 + spriteHeight * 128; // 256 and 128 factors to avoid floats
+            int texY = ((d * texHeight) / spriteHeight) / 256;
+            Uint32 color = texture[sprite[spriteOrder[i]].texture][texWidth * texY + texX]; // get current color from the texture
+            if ((color & 0x00FFFFFF) != 0)
+              buffer[y][stripe] = color;
+          }
       }
     }
 
-    // Timing for input and FPS counter
+    drawBuffer(buffer[0]);
+    
+    /* Timing input for FPS counter */
     oldTime = time;
     time = SDL_GetTicks();
     double frameTime = (time - oldTime) / 1000.0; // frameTime is the time this frame has taken, in seconds
@@ -362,5 +479,24 @@ int main(int ac, char **av, char **env)
     // Close window if escape key is pressed
     if (keyDown(SDLK_ESCAPE))
       break;
+  }
+}
+
+/* Sort prites based on distance */
+void sortSprites(int *order, double *dist, int amount)
+{
+  std::vector<std::pair<double, int>> sprites(amount);
+  for (int i = 0; i < amount; i++)
+  {
+    sprites[i].first = dist[i];
+    sprites[i].second = order[i];
+  }
+  std::sort(sprites.begin(), sprites.end());
+
+  /* Restore in reverse to go from futhest to nearest */
+  for (int i = 0; i < amount; i++)
+  {
+    order[i] = sprites[amount - i - 1 ].second;
+    dist[i] = sprites[amount - i - 1 ].first;
   }
 }
