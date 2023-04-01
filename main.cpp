@@ -1,16 +1,15 @@
-#include "themaze.hpp"
-
-
+#include "lib/raycast.hpp"
 
 /**
  * main - The main function
  * @argc: the number of arguments
  * @args: the arguments
  * Return: 0 on success
-*/
-int main( int argc, char* args[] )
+ */
+int main(int argc, char *args[])
 {
-    initSDL();
+    // Xmain();
+    Ymain(argc, args);
 
-    return(0);
+    return (0);
 }

@@ -1,9 +1,7 @@
-#Copyright Notice:
-#The files within this zip file are copyrighted by Lazy Foo' Productions (2004-2014)
-#and may not be redistributed without written permission.
+# The maze project Makefile
 
 #OBJS specifies which files to compile as part of the project
-OBJS = main.cpp
+OBJS = raycasting/raycaster_flat.cpp
 
 #CC specifies which compiler we're using
 CC = g++
