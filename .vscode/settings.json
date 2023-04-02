@@ -1,0 +1,9 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/ubuntu/alx-projects/the-maze-project",
+            "binaryPath": "/home/ubuntu/alx-projects/the-maze-project/testfile",
+            "binaryArgs": []
+        }
+    ]
+}

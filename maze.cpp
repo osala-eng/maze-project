@@ -15,8 +15,8 @@
 
 using namespace QuickCG;
 
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH 1360
+#define SCREEN_HEIGHT 720
 #define texWidth 64
 #define texHeight 64
 #define mapWidth 24
@@ -145,14 +145,14 @@ int main(int ac, char **av, char **env)
 #else
   // generate some textures
   unsigned long tw, th, error = 0;
-  error |= loadImage(texture[0], tw, th, "pics/eagle.png");
-  error |= loadImage(texture[1], tw, th, "pics/redbrick.png");
-  error |= loadImage(texture[2], tw, th, "pics/purplestone.png");
-  error |= loadImage(texture[3], tw, th, "pics/greystone.png");
-  error |= loadImage(texture[4], tw, th, "pics/bluestone.png");
-  error |= loadImage(texture[5], tw, th, "pics/mossy.png");
+  error |= loadImage(texture[0], tw, th, "pics/bluestone.png");
+  error |= loadImage(texture[1], tw, th, "pics/wood.png");
+  error |= loadImage(texture[2], tw, th, "pics/wood.png");
+  error |= loadImage(texture[3], tw, th, "pics/wood.png");
+  error |= loadImage(texture[4], tw, th, "pics/wood.png");
+  error |= loadImage(texture[5], tw, th, "pics/wood.png");
   error |= loadImage(texture[6], tw, th, "pics/wood.png");
-  error |= loadImage(texture[7], tw, th, "pics/colorstone.png");
+  error |= loadImage(texture[7], tw, th, "pics/wood.png");
   if(error) {
     std::cout << "Error loading textures" << std::endl;
     return 1;
@@ -161,7 +161,7 @@ int main(int ac, char **av, char **env)
   /* Sprite textures*/
   error |= loadImage(texture[8], tw, th, "pics/barrel.png");
   error |= loadImage(texture[9], tw, th, "pics/pillar.png");
-  error |= loadImage(texture[10], tw, th, "pics/greenlight.png");
+  error |= loadImage(texture[10], tw, th, "pics/lights.png");
   if(error) {
     std::cout << "Error loading sprite textures" << std::endl;
     return 1;
